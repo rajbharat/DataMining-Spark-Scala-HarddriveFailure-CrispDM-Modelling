@@ -1,0 +1,5 @@
+https://www.backblaze.com/b2/hard-drive-test-data.html
+Data is snapshot data
+so far used Q4 - 2018 for failure (based on criteria  Failure = 1 and hdd model)
+and last 3 days of data for success (Filtered based on Failure=0, Harddrive model, LifeTime>365 days
+ Rank = 1 i.e. read the latest measure of the hdd serial no)
