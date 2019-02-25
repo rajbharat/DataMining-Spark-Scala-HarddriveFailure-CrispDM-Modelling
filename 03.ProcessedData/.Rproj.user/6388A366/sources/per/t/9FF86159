@@ -5,13 +5,15 @@
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
-    "hash" : "1884999312",
+    "hash" : "1828544725",
     "id" : "9FF86159",
-    "lastKnownWriteTime" : 1550668461,
-    "last_content_update" : 1550668461,
+    "lastKnownWriteTime" : 1550894042,
+    "last_content_update" : 1550894042012,
     "path" : "C:/Users/skybe/Dropbox (Personal)/courses/MTech Knowledge engineering/KE 5107 - Data Mining Methodology & Methods/CA/01/DataMining-Spark-Scala-HarddriveFailure-CrispDM-Modelling/03.ProcessedData/eda.R",
     "project_path" : "eda.R",
     "properties" : {
+        "cursorPosition" : "75,0",
+        "scrollLine" : "52"
     },
     "relative_order" : 1,
     "source_on_save" : false,

@@ -160,10 +160,6 @@ There are `r length(noVar[noVar==0])` columns with constant values.
 **Remove these 0 variance columns:** `r names(noVar[noVar==0])`
 
 
-**4. How Many Outliers Are There In Each Column?** 
-
-
-
 ## Intermission  
 
 We now know the columns that have  >90% missing values and 0 variance. Before we conduct further EDAs, it would be useful to remove these columns from our dataset. In addition, we are also taking out normalized variables. 
@@ -180,6 +176,22 @@ t <- t[, -grep("normalized$", colnames(t))]
 After removal, we are left with `r ncol(t)` columns. 
 
 These are the variables that make the cut: `r colnames(t)`
+
+
+**4. How Many Outliers Are There In Each Column?** 
+
+``` {r}
+for (i in 5:32) {
+  
+  d1 <- t[,i]
+  d1 <- d1[!is.na(d1)]
+  n <- colnames(t)[i]
+  
+  show(bwplot(d1, xlab="Values", ylab="", main=n)) 
+}
+
+```
+
 
 **5. When would Data Go Missing?**  
 
