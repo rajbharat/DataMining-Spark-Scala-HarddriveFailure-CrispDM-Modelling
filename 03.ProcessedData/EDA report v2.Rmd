@@ -213,11 +213,12 @@ Lastly we investigate the correlations between features. Ideally, the features s
 This correlation was conducted using "pairwise.complete.obs"; otherwise the NAs would simply render the correlations moot. 
 
 ```{r fig.height=12, fig.width=12}
-a <- cor(t[6:32], use = "pairwise.complete.obs")
-corrplot(a, method="square")
+#a <- cor(t[6:32], use = "pairwise.complete.obs", method="pearson") # for comparison
+a <- cor(t[6:32], use = "pairwise.complete.obs", method="spearman")
+corrplot(a, method="square") 
 ```
 
-The plot shows the following high correlations between:
+The plot shows high correlations between:
 
 1. smart_4_raw | smart_192_raw 
 2. smart_4_raw | smart_194_raw

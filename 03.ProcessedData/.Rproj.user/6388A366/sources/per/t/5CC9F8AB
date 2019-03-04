@@ -1,19 +1,19 @@
 {
     "collab_server" : "",
     "contents" : "",
-    "created" : 1550668646011.000,
+    "created" : 1551707341516.000,
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
-    "hash" : "3606526978",
-    "id" : "EC4DA1C9",
-    "lastKnownWriteTime" : 1550894453,
-    "last_content_update" : 1550894453680,
+    "hash" : "2421626315",
+    "id" : "5CC9F8AB",
+    "lastKnownWriteTime" : 1551707761,
+    "last_content_update" : 1551707761123,
     "path" : "C:/Users/skybe/Dropbox (Personal)/courses/MTech Knowledge engineering/KE 5107 - Data Mining Methodology & Methods/CA/01/DataMining-Spark-Scala-HarddriveFailure-CrispDM-Modelling/03.ProcessedData/EDA report v2.Rmd",
     "project_path" : "EDA report v2.Rmd",
     "properties" : {
-        "cursorPosition" : "189,51",
-        "scrollLine" : "178"
+        "cursorPosition" : "215,1",
+        "scrollLine" : "191"
     },
     "relative_order" : 2,
     "source_on_save" : false,
