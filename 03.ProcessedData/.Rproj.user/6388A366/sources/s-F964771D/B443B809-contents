@@ -1,0 +1,8 @@
+for (i in 5:33) {
+  
+  d1 <- crs$dataset[,i]
+  d1 <- d1[!is.na(d1)]
+  n <- colnames(t)[i]
+  
+  show(bwplot(d1, xlab="Values", ylab="", main=n)) 
+}
