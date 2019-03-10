@@ -1,0 +1,245 @@
+---
+title: 'KE 5107 CA 1: EDA (version 2)'
+output:
+  html_document:
+    df_print: paged
+---
+
+### Loading libraries & Dataset 
+
+```{r warning=FALSE, message=FALSE}
+##### load libraries
+
+library (openxlsx)
+library(lattice)
+library (DataExplorer) # https://datascienceplus.com/blazing-fast-eda-in-r-with-dataexplorer/
+library(corrplot)
+library(dplyr)
+
+#### Variables 
+filename <- paste("collected",".xlsx", sep = "")
+
+#### Load dataset
+hd = read.xlsx(filename, detectDates= TRUE)
+```
+
+## Overview
+
+We are currently using 2018 data from Back Blaze. These are SMART stats for each hard disk drive in operation and whether it fails or not. The data is mapped across days in a year.  
+
+**Short Description of Dataset**
+The dataset is divided into 2 distinct parts:
+
+1. Descriptors
+
+    These include Hard Drive information (e.g. model, serial number), test dates, Failure status etc. Failure Status is the ground truth label for each Hard Drive.  
+    Columns associated are `r colnames(hd[,1:5])`
+
+2. SMART Stats
+
+    These are the actual stats for each Hard Drive. Each stat has a raw and normalised version. According to the documentation, there will be missing values as hard drives do not necessarily report all SMART stats.
+    Columns associated are `r colnames(hd[,6:ncol(hd)])`
+
+
+**Exploratory Data Analyses (EDAs)**
+As the dataset is time-bound, we will be looking at how time affects the dataset in addition to the usual EDA techniques. 
+
+1. Counts & Dimensions of Descriptors: To understand volume & "uniqueness" across time  
+  + Dimension of dataset
+  + Count of dates, hard drives, failed (1) vs OK (0) hard drives  
+  + Proportion of failed vs OK hard drives
+2. Deep Dive into SMART Stats: To understand how much is missing, what's missing, and outliers 
+  + Data Summary
+  + Missing data & When they are missing 
+  + SMART Stats with no variances
+  + Outliers 
+3. Correlations between features: To see if there are similar features  
+4. Next Steps 
+
+The rest of this section will highlight interesting findings and possbile approaches. 
+Please note that R code is embedded within the document.
+
+### Counts and Dimensions of Descriptors
+
+In this EDA, we are concerned about the shape, form, and size of the descriptors. 
+
+**Dataset Dimensions** 
+
+The dataset has these dimensions: `r dim(hd)`
+
+1. Observations: `r dim(hd)[1]`
+2. Features: `r dim(hd)[2]`
+
+**1. Unique Dates**
+
+There are **`r length(unique(hd$date))`** unique dates in `r dim(hd)[1]` observations.
+That means some observations might be "bunched" up in time. Let's have a look at how observations are distributed across time
+
+```{r echo=TRUE}
+temp <- hd %>%
+  group_by(date, failure) %>%
+  summarize(count=n())
+  xyplot(count~date, temp, type="l", auto.key=TRUE, main="Distribution of Observations over Time", ylab="Observations")
+```
+
+It's quite apparent that there's an **observation spike near the end of the year**.
+
+
+**2. How many Hard Drives do we have?** 
+
+There are **`r length(unique(hd$serial_number))`** Hard Drives in `r dim(hd)[1]` observations. Almost every observation is matched to a unique hard drive
+
+**3. How many failed (1) vs OK (0) Hard Drives are there?**
+
+```{r echo=TRUE}
+count(hd, failure)
+```
+As the table shows, we have a disporportionate breakdown of failed (1) vs OK (0) Hard Drives. There are only `r 581/nrow(hd)*100`% failures. This means that we will have to **rebalance the dataset in some way.**
+
+Following on this (dis)proportion, what is the **distribution of failed (1) vs OK (0) hard drives across time?**
+
+```{r echo=TRUE}
+xyplot(count~date, temp, groups=failure, type="l", auto.key=TRUE, main="Distribution of Failed (1) vs OK (0) Hard Drives over Time", ylab="NUmber of Hard Drives")
+```
+
+This is an expected result. We could probably get rid of some OK Hard Drives that are near the end of the year. 
+
+#### Counts & Dimensions Summary 
+
+OK (0) Hard Drives tend to "bunch" up towards the end of the year. This creates an imbalance in the dataset proportion between Failed (1) and OK (0) Hard Drives. The dataset will need to be rebalanced before running predictive models later.
+
+
+### Deep Dive into SMART Stats
+
+Now that we know what's in our Descriptors, it's time to look at the actual predictors (in this case, SMART Stats of hard drives). 
+
+**1. Summary of SMART Stats**
+
+```{r echo=TRUE}
+summary(hd [6:ncol(hd)])
+```
+
+As this lengthy summary shows, some columns are empty (e.g. "smart_2_normalized", smart_2_raw"); some have just 1 value (e.g. "LatestRec", "smart_251_normalized"); and what is the difference between normalised and raw data columns?
+
+For the rest of this section, we will look for the amount of missing data, columns with 0 variances, and outliers in columns that remain.
+
+**2. How Much Data is Missing?** 
+```{r}
+missingHD <- colSums(is.na(hd))/nrow(hd)*100
+```
+
+This is best answered as such: 
+
+1. How many columns have no missing data? 
+  + `r sum(missingHD ==00)` (about `r sum(missingHD ==0)/ncol(hd)*100`%)
+
+2. How many columns have < 50% missing data? 
+  + `r sum(missingHD <50)` (about `r sum(missingHD<50)/ncol(hd)*100`%)
+
+3. How many columns have > 90% missing data? 
+  + `r sum(missingHD >90)` (about `r sum(missingHD >90)/ncol(hd)*100`%)
+
+This leads us to the next question: **Which columns are Missing then?** 
+
+```{r, fig.width = 12, fig.height = 20}
+barchart(sort(missingHD,decreasing = TRUE), xlab = "% of missing values", main="Missing Values in Data Columns")
+```
+
+We can remove columns with > 90% missing values without affecting the dataset too much. We should get rid of these columns: `r colnames(hd[,missingHD >90])`
+
+Apart from missing values, what columns contain only 1 value? Columns with constant values shouldn't have an effect on the Hard Drive's failure/OK rate. We can use variance as a measure to identify these columns.
+
+**3. Which Columns have only 1 value? Measured by Variance of 0 **
+```{r warning=FALSE}
+varHD <- apply(hd, 2, var,na.rm=TRUE)
+noVar <- varHD[!is.na(varHD)]
+
+```
+There are `r length(noVar[noVar==0])` columns with constant values. 
+
+**Remove these 0 variance columns:** `r names(noVar[noVar==0])`
+
+
+## Intermission  
+
+We now know the columns that have  >90% missing values and 0 variance. Before we conduct further EDAs, it would be useful to remove these columns from our dataset. In addition, we are also taking out normalized variables. 
+
+``` {r}
+# removing columns with > 90% missing values, 0 variance, and -Normalized variables
+
+t <- hd[,missingHD <90]
+t <- t[, -which(names(t) %in% names(noVar[noVar==0]))]
+t <- t[, -grep("normalized$", colnames(t))]
+
+```
+
+After removal, we are left with `r ncol(t)` columns. 
+
+These are the variables that make the cut: `r colnames(t)`
+
+
+**4. How Many Outliers Are There In Each Column?** 
+
+``` {r}
+for (i in 5:32) {
+  
+  d1 <- t[,i]
+  d1 <- d1[!is.na(d1)]
+  n <- colnames(t)[i]
+  
+  show(bwplot(d1, xlab="Values", ylab="", main=n)) 
+}
+
+```
+
+
+**5. When would Data Go Missing?**  
+
+This dataset contains time data and, in addition, Hard Drives when queried do not necessarily reveal certain SMART Stats. We'd like to see if a patterns appear when we look at the volume of missing values against time. 
+
+``` {r}
+t$naVal <- rowSums(is.na(t))
+xyplot(naVal~date, t, type="l", main="Volume of NAs across Time", auto.key = TRUE, xlab="Date", ylab="Count of columns with NA values")
+```
+
+The chart shows that more columns are missing between Jan to Apr. Fewer during Apr to Oct (Q2 & Q3). 
+
+We would consider **using just the Apr to Oct duration for our prediction models, and filling in the missing values using a replacement technique**.
+
+## 3. Correlations between features
+
+Lastly we investigate the correlations between features. Ideally, the features shouldn't show high correlations (>0.8) between each other. If so, we will have to remove either one. 
+
+This correlation was conducted using "pairwise.complete.obs"; otherwise the NAs would simply render the correlations moot. 
+
+```{r fig.height=12, fig.width=12}
+#a <- cor(t[6:32], use = "pairwise.complete.obs", method="pearson") # for comparison
+a <- cor(t[6:32], use = "pairwise.complete.obs", method="spearman")
+corrplot(a, method="square") 
+```
+
+The plot shows high correlations between:
+
+1. smart_4_raw | smart_192_raw 
+2. smart_4_raw | smart_194_raw
+3. smart_9_raw | smart_196_raw
+4. smart_9_raw | smart_250_raw
+5. smart_9_raw | smart_251_raw
+6. smart_192_raw | smart_196_raw
+7. smart_193_raw | smart_242_raw
+8. smart_195_raw | smart_196_raw
+9. smart_198_raw | smart_197_raw
+10. smart_199_raw | smart_200_raw
+11. smart_198_raw | smart_220_raw
+12. smart_224_raw | smart_225_raw
+12. smart_242_raw | smart_250_raw
+
+We should keep the following variables: smart_4_raw; smart_9_raw; smart_193_raw; smart_195_raw; smart_198_raw; smart_199_raw; smart_198_raw; smart_224_raw; smart_242_raw
+
+
+## Next Steps 
+
+1. Remove columns with > 90% missing values, normalised columns, and columns with 0 variances 
+2. Remove columns based on high correlation findings 
+3. Select sub-section of observations that have the most data available
+4. Fill in in missing values using averages src: [Towards Data Science](https://towardsdatascience.com/how-to-handle-missing-data-8646b18db0d4))
